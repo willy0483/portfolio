@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+import { toast } from "sonner";
+
 import {
   Select,
   SelectContent,
@@ -16,7 +18,13 @@ import {
 
 import { FaPhoneAlt, FaEnvelope, FaMapMarkerAlt } from "react-icons/fa";
 
-const info = [
+interface ContactInfoProp {
+  icon: ReactElement;
+  title: string;
+  description: string;
+}
+
+const info: ContactInfoProp[] = [
   {
     icon: <FaPhoneAlt />,
     title: "Phone",
@@ -35,8 +43,85 @@ const info = [
 ];
 
 import { motion } from "framer-motion";
+import { ReactElement, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import emailjs from "@emailjs/browser";
+
+import { z } from "zod";
+
+const ContactSchema = z.object({
+  firstname: z.string().min(2, {
+    message: "Firstname must be at least 2 characters.",
+  }),
+  lastname: z.string().min(2, {
+    message: "Lastname must be at least 2 characters.",
+  }),
+  email: z.string().email({
+    message: "Invalid email address.",
+  }),
+  phone: z
+    .string()
+    .regex(/^\d+$/, {
+      message: "Phone number must contain only digits.",
+    })
+    .min(8, {
+      message: "Phone number must be at least 8 digits.",
+    }),
+  service: z.string().nonempty({
+    message: "Please select a service.",
+  }),
+  description: z.string().min(10, {
+    message: "Message must be at least 10 characters.",
+  }),
+});
 
 const Contact = () => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const formRef = useRef<HTMLFormElement | null>(null);
+
+  const form = useForm<z.infer<typeof ContactSchema>>({
+    resolver: zodResolver(ContactSchema),
+    mode: "onChange",
+    defaultValues: {
+      firstname: "",
+      lastname: "",
+      email: "",
+      phone: "",
+      service: "",
+      description: "",
+    },
+  });
+
+  const onSubmit = (data: z.infer<typeof ContactSchema>) => {
+    setIsLoading(true);
+    console.log(data);
+
+    if (formRef.current) {
+      emailjs
+        .sendForm(
+          process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID!,
+          process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID!,
+          formRef.current,
+          {
+            publicKey: process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY!,
+          }
+        )
+        .then(
+          () => {
+            form.reset();
+            setIsLoading(false);
+            toast("Email sent successfully!");
+          },
+          (error) => {
+            console.warn("FAILED...", JSON.stringify(error));
+            toast("FAILED");
+          }
+        );
+    }
+  };
+
   return (
     <motion.section
       initial={{ opacity: 0 }}
@@ -50,43 +135,158 @@ const Contact = () => {
         <div className="flex flex-col xl:flex-row gap-[30px]">
           {/* form */}
           <div className="xl:h-[54%] order-2 xl:order-none">
-            <form className="flex flex-col gap-6 p-10 bg-[#27272c] rounded-xl">
+            <form
+              ref={formRef}
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="flex flex-col gap-6 p-10 bg-[#27272c] rounded-xl"
+            >
               <h3 className="text-4xl text-accent-default ">
                 Let&apos;s work together
               </h3>
               <p className="text-white/60">
-                Lorem ipsum dolor sit amet, consectetur adipisicing elit.
-                Tenetur incidunt enim natus quo ab.
+                Have a project in mind? Let’s collaborate to turn your vision
+                into reality. Reach out today, and we’ll guide you every step of
+                the way.
               </p>
               {/* input */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Input type="firstname" placeholder="firstname" />
-                <Input type="lastname" placeholder="lastname" />
-                <Input type="email" placeholder="Email address" />
-                <Input type="phone" placeholder="Phone number" />
+                <div className="flex flex-col gap-2">
+                  <Input
+                    {...form.register("firstname")}
+                    name="firstname"
+                    placeholder="firstname"
+                  />
+                  {form.formState.errors.firstname && (
+                    <p className="text-red-500 text-sm">
+                      {form.formState.errors.firstname.message}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Input
+                    {...form.register("lastname")}
+                    name="lastname"
+                    placeholder="lastname"
+                  />
+                  {form.formState.errors.lastname && (
+                    <p className="text-red-500 text-sm">
+                      {form.formState.errors.lastname.message}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Input
+                    {...form.register("email")}
+                    name="email"
+                    type="email"
+                    placeholder="Email address"
+                  />
+                  {form.formState.errors.email && (
+                    <p className="text-red-500 text-sm">
+                      {form.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Input
+                    {...form.register("phone")}
+                    name="phone"
+                    placeholder="Phone number"
+                  />
+                  {form.formState.errors.phone && (
+                    <p className="text-red-500 text-sm">
+                      {form.formState.errors.phone.message}
+                    </p>
+                  )}
+                </div>
               </div>
               {/* select */}
-              <Select>
+              <Select
+                name="service"
+                onValueChange={(value) => form.setValue("service", value)}
+              >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a service"></SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
                     <SelectLabel>Select a service</SelectLabel>
-                    <SelectItem value="est">Web Development</SelectItem>
-                    <SelectItem value="cst">UI/UX Design</SelectItem>
-                    <SelectItem value="mst">Logo Design</SelectItem>
+                    <SelectItem value="Web Development">
+                      Web Development
+                    </SelectItem>
+                    <SelectItem value="UI/UX Design">UI/UX Design</SelectItem>
+                    <SelectItem value="Logo Design">Logo Design</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
+              {form.formState.errors.service && (
+                <p className="text-red-500 text-sm">
+                  {form.formState.errors.service.message}
+                </p>
+              )}
+
               {/* textarea */}
               <Textarea
+                {...form.register("description")}
                 className="h-[200px]"
+                name="description"
                 placeholder="Type your message here."
               />
+              {form.formState.errors.description && (
+                <p className="text-red-500 text-sm">
+                  {form.formState.errors.description.message}
+                </p>
+              )}
+
               {/* btn */}
-              <Button size="md" className="max-w-40 ">
-                Send message
+              <Button
+                type="submit"
+                size="md"
+                className="max-w-40 hover:cursor-pointer "
+              >
+                {isLoading ? (
+                  <span className="flex items-center gap-1">
+                    Sending
+                    <motion.span
+                      initial={{ y: 0 }}
+                      animate={{ y: [-5, 0, -5] }}
+                      transition={{
+                        duration: 0.6,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 0,
+                      }}
+                    >
+                      .
+                    </motion.span>
+                    <motion.span
+                      initial={{ y: 0 }}
+                      animate={{ y: [-5, 0, -5] }}
+                      transition={{
+                        duration: 0.6,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 0.2,
+                      }}
+                    >
+                      .
+                    </motion.span>
+                    <motion.span
+                      initial={{ y: 0 }}
+                      animate={{ y: [-5, 0, -5] }}
+                      transition={{
+                        duration: 0.6,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                        delay: 0.4,
+                      }}
+                    >
+                      .
+                    </motion.span>
+                  </span>
+                ) : (
+                  "Send Message"
+                )}
               </Button>
             </form>
           </div>

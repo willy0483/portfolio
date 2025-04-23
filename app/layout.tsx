@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 // components
 import Header from "@/components/header";
@@ -28,7 +29,10 @@ export default function RootLayout({
       <body className={`${JetBrainsMono.variable} antialiased pattern`}>
         <Header />
         <StairTransition />
-        <PageTransition>{children}</PageTransition>
+        <PageTransition>
+          {children}
+          <Toaster />
+        </PageTransition>
       </body>
     </html>
   );
