@@ -79,6 +79,10 @@ const ContactSchema = z.object({
 const Contact = () => {
   const [isLoading, setIsLoading] = useState(false);
 
+  const ErrorMessage = ({ message }: { message?: string }) => {
+    return message ? <p className="text-red-500 text-sm">{message}</p> : null;
+  };
+
   const formRef = useRef<HTMLFormElement | null>(null);
 
   const form = useForm<z.infer<typeof ContactSchema>>({
@@ -115,8 +119,9 @@ const Contact = () => {
             toast("Email sent successfully!");
           },
           (error) => {
-            console.warn("FAILED...", JSON.stringify(error));
-            toast("FAILED");
+            console.error("Email sending failed:", error);
+            setIsLoading(false);
+            toast.error("Failed to send email. Please try again later.");
           }
         );
     }
@@ -154,25 +159,23 @@ const Contact = () => {
                   <Input
                     {...form.register("firstname")}
                     name="firstname"
-                    placeholder="firstname"
+                    placeholder="Frstname"
+                    aria-label="Firstname"
                   />
-                  {form.formState.errors.firstname && (
-                    <p className="text-red-500 text-sm">
-                      {form.formState.errors.firstname.message}
-                    </p>
-                  )}
+                  <ErrorMessage
+                    message={form.formState.errors.firstname?.message}
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Input
                     {...form.register("lastname")}
                     name="lastname"
-                    placeholder="lastname"
+                    placeholder="Lastname"
+                    aria-label="Lastname"
                   />
-                  {form.formState.errors.lastname && (
-                    <p className="text-red-500 text-sm">
-                      {form.formState.errors.lastname.message}
-                    </p>
-                  )}
+                  <ErrorMessage
+                    message={form.formState.errors.lastname?.message}
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Input
@@ -180,24 +183,22 @@ const Contact = () => {
                     name="email"
                     type="email"
                     placeholder="Email address"
+                    aria-label="Email"
                   />
-                  {form.formState.errors.email && (
-                    <p className="text-red-500 text-sm">
-                      {form.formState.errors.email.message}
-                    </p>
-                  )}
+                  <ErrorMessage
+                    message={form.formState.errors.email?.message}
+                  />
                 </div>
                 <div className="flex flex-col gap-2">
                   <Input
                     {...form.register("phone")}
                     name="phone"
                     placeholder="Phone number"
+                    aria-label="Phone"
                   />
-                  {form.formState.errors.phone && (
-                    <p className="text-red-500 text-sm">
-                      {form.formState.errors.phone.message}
-                    </p>
-                  )}
+                  <ErrorMessage
+                    message={form.formState.errors.phone?.message}
+                  />
                 </div>
               </div>
               {/* select */}
@@ -219,11 +220,7 @@ const Contact = () => {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-              {form.formState.errors.service && (
-                <p className="text-red-500 text-sm">
-                  {form.formState.errors.service.message}
-                </p>
-              )}
+              <ErrorMessage message={form.formState.errors.service?.message} />
 
               {/* textarea */}
               <Textarea
@@ -232,17 +229,16 @@ const Contact = () => {
                 name="description"
                 placeholder="Type your message here."
               />
-              {form.formState.errors.description && (
-                <p className="text-red-500 text-sm">
-                  {form.formState.errors.description.message}
-                </p>
-              )}
+              <ErrorMessage
+                message={form.formState.errors.description?.message}
+              />
 
               {/* btn */}
               <Button
                 type="submit"
                 size="md"
                 className="max-w-40 hover:cursor-pointer "
+                disabled={isLoading}
               >
                 {isLoading ? (
                   <span className="flex items-center gap-1">
